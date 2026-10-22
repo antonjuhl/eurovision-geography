@@ -1,0 +1,608 @@
+<meta charset="utf-8">
+<title>Neighbours or Diaspora?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+/* Layout: an argument read top to bottom. One period switch in a slim sticky bar;
+   each numbered section answers one step of "is it geography, or something else?". */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #14161b;
+  --ink-2: #4c5160;
+  --muted: #7b8090;
+  --line: #dcdfe6;
+  --grid: #eceef2;
+  --accent: #a3285f;
+  --accent-ink: #ffffff;
+  --accent-soft: #f6e7ee;
+  --land: #e6e8ec;
+  --other: #a6abb7;
+  --mid: #e9e8e4;
+  --pos: #2a78d6; --pos-strong: #184f95; --neg: #d23f3e;
+  --s1: #2a78d6; --s2: #eb6834;
+  --g0: #2a78d6; --g1: #eb6834; --g2: #1baf7a; --g3: #eda100; --g4: #e87ba4; --g5: #008300; --g6: #6250d6; --g7: #e34948;
+  --font-display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101216; --surface: #191c22; --ink: #eef0f3; --ink-2: #b8bcc8; --muted: #888d9c;
+    --line: #2c3039; --grid: #242830; --accent: #ee8bb5; --accent-ink: #1a0b12; --accent-soft: #3a1f2c;
+    --land: #262a33; --other: #646b7a; --mid: #383835;
+    --pos: #5598e7; --pos-strong: #86b6ef; --neg: #e66767; --s1: #3987e5; --s2: #d95926;
+    --g0: #3987e5; --g1: #d95926; --g2: #199e70; --g3: #c98500; --g4: #d55181; --g5: #008300; --g6: #9085e9; --g7: #e66767;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101216; --surface: #191c22; --ink: #eef0f3; --ink-2: #b8bcc8; --muted: #888d9c;
+  --line: #2c3039; --grid: #242830; --accent: #ee8bb5; --accent-ink: #1a0b12; --accent-soft: #3a1f2c;
+  --land: #262a33; --other: #646b7a; --mid: #383835;
+  --pos: #5598e7; --pos-strong: #86b6ef; --neg: #e66767; --s1: #3987e5; --s2: #d95926;
+  --g0: #3987e5; --g1: #d95926; --g2: #199e70; --g3: #c98500; --g4: #d55181; --g5: #008300; --g6: #9085e9; --g7: #e66767;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.hero { padding-block: 56px 32px; }
+.kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(40px, 7.5vw, 88px); line-height: .95; letter-spacing: -0.035em; margin: 14px 0 20px; text-wrap: balance; }
+h1 .or { font-weight: 500; color: var(--muted); font-size: .55em; letter-spacing: -0.01em; vertical-align: .32em; margin: 0 .12em; }
+h1 .dia { color: var(--accent); }
+.lede { max-width: 64ch; color: var(--ink-2); font-size: 18px; margin: 0; }
+.lede b { color: var(--ink); font-weight: 600; }
+
+.findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 32px; }
+.finding { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.finding .v { font-family: var(--font-display); font-weight: 700; font-size: 34px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.finding .d { color: var(--ink-2); font-size: 14px; margin-top: 4px; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-block: 1px solid var(--line); }
+.bar .wrap { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding-block: 10px; }
+.bar .lab { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.bar .note { font-size: 13px; color: var(--ink-2); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 14px; background: transparent; color: var(--ink-2); border: 0; padding: 6px 14px; min-height: 34px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+select { font: inherit; font-size: 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-height: 34px; max-width: 100%; }
+
+main { padding-block: 40px 72px; display: flex; flex-direction: column; gap: 64px; }
+section.step { display: flex; flex-direction: column; gap: 14px; }
+.shead { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: end; justify-content: space-between; }
+.shead > div { min-width: 0; }
+.num { font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: .06em; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 3.4vw, 34px); letter-spacing: -0.02em; line-height: 1.1; margin: 4px 0 0; text-wrap: balance; max-width: 26ch; }
+.text { color: var(--ink-2); max-width: 68ch; margin: 0; }
+.text b { color: var(--ink); font-weight: 600; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+.scroll { overflow-x: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); align-items: center; padding: 6px 4px 2px; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; flex: none; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.ln { display: inline-block; width: 24px; border-top: 2px solid; margin-right: 6px; vertical-align: 3px; }
+.answer { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; max-width: 72ch; color: var(--ink); font-size: 17px; }
+.answer b { font-weight: 600; }
+.two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px; }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.grp { font-size: 14px; color: var(--ink-2); padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
+.grp b { color: var(--ink); font-weight: 600; display: flex; align-items: center; margin-bottom: 2px; }
+.diffs { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: var(--surface); color: var(--ink-2); }
+.chip b { color: var(--ink); font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.stat { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; }
+.stat .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-weight: 700; font-size: 28px; font-variant-numeric: tabular-nums; }
+.stat .d { font-size: 13px; color: var(--ink-2); }
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl span { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ctls { display: flex; gap: 12px; flex-wrap: wrap; }
+.method { color: var(--ink-2); max-width: 70ch; display: flex; flex-direction: column; gap: 10px; }
+.method h2 { color: var(--ink); }
+.method h3 { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink); margin: 8px 0 -4px; }
+.method p { margin: 0; }
+.empty { padding: 32px 12px; text-align: center; color: var(--muted); }
+footer { color: var(--muted); font-size: 13px; padding-block: 0 40px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<header class="hero wrap">
+  <div class="kicker">Eurovision Song Contest · finals · jury and televote votes</div>
+  <h1>Neighbours <span class="or">or</span> <span class="dia">diaspora?</span></h1>
+  <p class="lede">Countries in the same corner of Europe give each other extra points. But is that because they are <b>close</b>, or because they share
+  <b>language, culture and emigrants</b>? This page tests our own country clusters against distance, against random groupings and against the groups the votes form by themselves.</p>
+  <div class="findings" id="findings"></div>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <span class="lab">Period</span>
+    <div class="seg" id="period" role="group" aria-label="Period">
+      <button type="button" data-v="1993-2023" aria-pressed="true">1993–2023</button>
+      <button type="button" data-v="1997-2008" aria-pressed="false">1997–2008 · televote era</button>
+      <button type="button" data-v="2009-2023" aria-pressed="false">2009–2023 · jury + public</button>
+    </div>
+    <span class="note" id="periodNote"></span>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section class="step" id="map">
+    <div class="shead">
+      <div><div class="num">01 · THE MAP</div><h2>How Europe groups itself when you only look at the votes</h2></div>
+      <div class="seg" id="mapMode" role="group" aria-label="Map colouring">
+        <button type="button" data-v="data" aria-pressed="true">Groups in the data</button>
+        <button type="button" data-v="hyp" aria-pressed="false">Our clusters</button>
+      </div>
+    </div>
+    <p class="text" id="mapText"></p>
+    <div class="panel">
+      <div id="mapPlot"></div>
+      <div class="legend" id="mapLegend"></div>
+    </div>
+    <div class="groups" id="groupList"></div>
+    <div>
+      <p class="text" style="margin-bottom:8px"><b>Where the data disagrees with our clusters</b></p>
+      <div class="diffs" id="diffs"></div>
+    </div>
+  </section>
+
+  <section class="step" id="distance">
+    <div><div class="num">02 · DISTANCE</div><h2>Being close helps, but it does not explain the clusters</h2></div>
+    <p class="text">Each dot is a pair of countries: how far apart they are, and how many extra points they give each other on average.
+    Blue dots are pairs inside one of our clusters. The lines show the average at each distance.</p>
+    <div class="two">
+      <div class="panel"><div id="distPlot"></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--s1)"></span>Same cluster</span>
+          <span><span class="dot" style="background:var(--other)"></span>Different clusters</span>
+          <span><span class="ln" style="border-color:var(--ink)"></span>Average at that distance</span>
+        </div>
+      </div>
+      <div class="panel"><div id="matchPlot"></div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--s1)"></span>Same cluster</span>
+          <span><span class="sw" style="background:var(--other)"></span>Different clusters</span>
+        </div>
+      </div>
+    </div>
+    <p class="answer" id="distAnswer"></p>
+  </section>
+
+  <section class="step" id="random">
+    <div><div class="num">03 · ARE WE SEEING WHAT WE WANT TO SEE?</div><h2>Our clusters against a thousand random ones</h2></div>
+    <p class="text">If any grouping of countries showed favoritism, our clusters would prove nothing. So the countries in our clusters were shuffled
+    into random clusters of the same sizes, a thousand times, and the average favoritism inside them measured each time.</p>
+    <div class="panel"><div id="permPlot"></div></div>
+    <p class="answer" id="permAnswer"></p>
+  </section>
+
+  <section class="step" id="outliers">
+    <div><div class="num">04 · FAR APART, STILL FRIENDS</div><h2>The pairs distance cannot explain</h2></div>
+    <p class="text">Pairs at least 1,000 km apart that give far more than their distance predicts. The hollow dot is what distance alone would predict,
+    the filled dot is what they actually give, and the small diamond is what comes back the other way. Click a pair to see it year by year.</p>
+    <div class="panel"><div id="outPlot"></div>
+      <div class="legend">
+        <span><span class="dot" style="border:2px solid var(--muted);background:transparent"></span>Predicted from distance</span>
+        <span><span class="dot" style="background:var(--accent)"></span>Actually given</span>
+        <span><span class="sw" style="background:var(--other);transform:rotate(45deg) scale(.8)"></span>Given back the other way</span>
+      </div>
+    </div>
+    <p class="answer" id="outAnswer"></p>
+  </section>
+
+  <section class="step" id="matrix">
+    <div class="shead">
+      <div><div class="num">05 · EVERY PAIR</div><h2>The voting matrix, sorted by the groups the data found</h2></div>
+    </div>
+    <p class="text">Rows give points, columns receive them. Countries are ordered by group, so blocks of blue along the diagonal are groups that
+    favour each other. Blue outside the blocks is favoritism that crosses groups. Click a cell to see that pair year by year.</p>
+    <div class="panel scroll"><div id="heatPlot"></div></div>
+  </section>
+
+  <section class="step" id="public">
+    <div><div class="num">06 · WHO VOTES THIS WAY</div><h2>The public favours neighbours and home countries. The juries mostly do not.</h2></div>
+    <p class="text">Since 2016 each country publishes its jury and its televote separately. Each dot is one country giving to another, 2016–2023:
+    favoritism from the public across, from the jury up. On the diagonal both agree. Dots far to the right and low down are given by the public only.
+    This chart always uses 2016–2023.</p>
+    <div class="panel"><div id="tjPlot"></div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--s1)"></span>Under 800 km apart</span>
+        <span><span class="dot" style="background:var(--s2)"></span>Over 1,500 km apart (labelled: the biggest public-only favourites)</span>
+        <span><span class="dot" style="background:var(--other)"></span>In between</span>
+      </div>
+    </div>
+    <p class="answer" id="tjAnswer"></p>
+  </section>
+
+  <section class="step" id="pair">
+    <div class="shead">
+      <div><div class="num">07 · ONE PAIR</div><h2 id="pairTitle">Pair</h2></div>
+      <div class="ctls">
+        <label class="ctl"><span>From</span><select id="pairA"></select></label>
+        <label class="ctl"><span>To</span><select id="pairB"></select></label>
+      </div>
+    </div>
+    <div class="stats" id="pairStats"></div>
+    <div class="panel"><div id="pairPlot"></div></div>
+  </section>
+
+  <section class="step method" id="method">
+    <div><div class="num">08 · METHOD</div><h2>How this was measured</h2></div>
+    <h3>Favoritism</h3>
+    <p>For each final: the share of its points a country gave another country, minus the share that country got from every other voter
+    in the same final, multiplied by 58 (one set of 1–8, 10, 12). It reads as extra points. Since 2016 a country gives two sets (jury and public),
+    up to 24 points to one country. Working in shares keeps those years comparable with earlier ones. Pairs need at least five shared finals
+    (four in the shorter periods).</p>
+    <h3>Distance</h3>
+    <p>Straight-line distance between the countries' centres. Australia is left out of the distance charts, as it sits 13,000 km away from everyone.</p>
+    <h3>Groups in the data</h3>
+    <p>Countries are linked by how much they favour each other in both directions, and the Louvain method splits that network into the groups that
+    are most tightly linked inside. It never sees the map, only the votes. Each group is named after its two most connected members.
+    The split is the best of 40 runs and can change with the period.</p>
+    <h3>Random clusters</h3>
+    <p>The countries in our five clusters were reshuffled a thousand times into five clusters of the same sizes. If random clusters often reached the
+    same favoritism as ours, ours would mean little.</p>
+    <h3>What this cannot show</h3>
+    <p>The votes show patterns, not reasons. Language, shared TV and music markets, emigrant communities and plain taste all produce the same pattern.
+    The diaspora explanation fits the pairs in section 04 and the public-versus-jury split, but the votes alone cannot prove it.</p>
+  </section>
+</main>
+<footer class="wrap">Data: Eurovision votes 1957–2023. Built with Python (pandas, NetworkX) and Plotly.</footer>
+
+<script>
+const DATA = /*__DATA__*/null;
+window.PlotlyGeoAssets = { topojson: { world_50m: /*__TOPO__*/null } };
+
+const C = DATA.countries, N = C.length;
+const IDX = Object.fromEntries(C.map((c, i) => [c.id, i]));
+const byId = id => C[IDX[id]];
+const nm = id => byId(id).name;
+const code = id => id.toUpperCase();
+const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const gcol = s => tok("--g" + s);
+const fmt = v => { const r = Math.round(v * 10) / 10; return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(1); };
+const kmf = v => Math.round(v).toLocaleString("en-GB") + " km";
+const isPhone = () => matchMedia("(max-width: 640px)").matches;
+
+const state = { period: "1993-2023", mapMode: "data", a: "de", b: "tr" };
+const P = () => DATA.periods[state.period];
+const CFG = { displayModeBar: false, responsive: true };
+
+function baseLayout(extra = {}) {
+  return Object.assign({
+    paper_bgcolor: tok("--surface"), plot_bgcolor: tok("--surface"),
+    font: { family: tok("--font-body"), color: tok("--ink-2"), size: 12 },
+    hoverlabel: { bgcolor: tok("--surface"), bordercolor: tok("--line"), font: { family: tok("--font-body"), color: tok("--ink"), size: 13 } },
+    margin: { l: 10, r: 10, t: 10, b: 10 }, showlegend: false,
+  }, extra);
+}
+const axis = (extra = {}) => Object.assign({ gridcolor: tok("--grid"), zerolinecolor: tok("--line"), linecolor: tok("--line"),
+  tickfont: { color: tok("--ink-2") }, title: { font: { color: tok("--ink-2"), size: 12 } }, automargin: true }, extra);
+const title = text => ({ text, font: { color: tok("--ink-2"), size: 12 } });
+
+/* lookups for the active period */
+let PAIR = new Map(), GROUP = {};
+function prepare() {
+  PAIR = new Map(P().pairs.map(([a, b, v, n, c]) => [a + ">" + b, { v, n, c }]));
+  GROUP = {};
+  for (const g of P().communities) for (const m of g.members) GROUP[m] = g;
+}
+
+/* ---------------- headline findings ---------------- */
+function drawFindings() {
+  const p = P(), f = p.fit, pm = p.perm;
+  const near = p.matched[0], mid = p.matched[1];
+  document.getElementById("findings").innerHTML = [
+    [`${Math.round(f.r2_dist * 100)} %`, `of the differences in favoritism are explained by distance alone`],
+    [fmt(f.cluster_bonus), `extra points per final for pairs inside our clusters, compared with pairs the same distance apart`],
+    [`${Math.round(pm.p * pm.runs)} of ${pm.runs}`, `random groupings reach the favoritism of our clusters`],
+  ].map(([v, d]) => `<div class="finding"><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
+  document.getElementById("periodNote").textContent = `Finals ${p.y0}–${p.y1} · pairs with at least ${p.min} shared finals`;
+}
+
+/* ---------------- 01 map ---------------- */
+function favouritesOf(id, k = 3) {
+  const list = [];
+  for (const [key, o] of PAIR) { const [a, b] = key.split(">"); if (a === id) list.push([b, o.v]); }
+  return list.sort((p, q) => q[1] - p[1]).slice(0, k).map(([b, v]) => `${nm(b)} ${fmt(v)}`).join("<br>") || "Too few shared finals";
+}
+function mapGroups() {
+  if (state.mapMode === "data") return P().communities.map(g => ({ name: g.name, slot: g.slot, members: g.members }));
+  return Object.entries(DATA.hyp).map(([name, g]) => ({ name, slot: g.slot, members: g.members.filter(m => m in IDX) }));
+}
+function drawMap() {
+  const groups = mapGroups(), traces = [];
+  const inGroup = new Set(groups.flatMap(g => g.members));
+  const rest = C.filter(c => c.iso3 && !inGroup.has(c.id)).map(c => c.id);
+  const all = [...groups, { name: state.mapMode === "data" ? "Too few shared finals" : "Not in our clusters", slot: null, members: rest }];
+  for (const g of all) {
+    const ids = g.members.filter(m => byId(m).iso3);
+    const color = g.slot === null ? tok("--land") : gcol(g.slot);
+    const other = state.mapMode === "data" ? (c => byId(c).hyp ? `Our cluster: ${byId(c).hyp}` : "Not in our clusters")
+                                           : (c => GROUP[c] ? `Data group: ${GROUP[c].name}` : "No data group");
+    traces.push({
+      type: "choropleth", locationmode: "ISO-3", locations: ids.map(c => byId(c).iso3), z: ids.map(() => 1),
+      text: ids.map(c => `<b>${nm(c)}</b> · ${g.name}<br>${other(c)}<br><br><span style="font-size:11px">Gives most extra points to</span><br>${favouritesOf(c)}`),
+      hovertemplate: "%{text}<extra></extra>", colorscale: [[0, color], [1, color]], showscale: false,
+      marker: { line: { color: tok("--surface"), width: 0.8 }, opacity: g.slot === null ? 1 : 0.85 },
+    });
+  }
+  // direct labels, so a group is never identified by colour alone
+  const lab = { lat: [], lon: [], text: [] };
+  for (const g of groups) {
+    const pts = g.members.map(byId).filter(c => c.lat != null && c.lat > 35 && c.lat < 70 && c.lon > -25 && c.lon < 48);
+    if (!pts.length) continue;
+    lab.lat.push(pts.reduce((s, c) => s + c.lat, 0) / pts.length);
+    lab.lon.push(pts.reduce((s, c) => s + c.lon, 0) / pts.length);
+    lab.text.push(g.name.split(" – ")[0].replace(" & Herzegovina", "").replace(/ \+\d+$/, "") + (state.mapMode === "data" ? " group" : ""));
+  }
+  traces.push({ type: "scattergeo", mode: "text", lat: lab.lat, lon: lab.lon, text: lab.text, hoverinfo: "skip",
+    textfont: { family: tok("--font-body"), size: isPhone() ? 10 : 13, color: tok("--ink") } });
+  Plotly.react("mapPlot", traces, baseLayout({
+    height: isPhone() ? 300 : 620, dragmode: false,
+    geo: { projection: { type: "mercator" }, resolution: 50, lonaxis: { range: [-25, 50] }, lataxis: { range: [34, 69] },
+      showland: true, landcolor: tok("--land"), showocean: true, oceancolor: tok("--surface"), bgcolor: tok("--surface"),
+      showcountries: true, countrycolor: tok("--surface"), showcoastlines: false, showframe: false, showlakes: false },
+  }), { displayModeBar: false, scrollZoom: false, responsive: true });
+
+  document.getElementById("mapLegend").innerHTML = groups.map(g => `<span><span class="sw" style="background:${gcol(g.slot)}"></span>${g.name}</span>`).join("");
+  document.getElementById("groupList").innerHTML = groups.map(g =>
+    `<div class="grp"><b><span class="sw" style="background:${gcol(g.slot)}"></span>${g.name}</b>${g.members.map(nm).join(", ")}</div>`).join("");
+  document.getElementById("mapText").innerHTML = state.mapMode === "data"
+    ? `An algorithm grouped the countries using nothing but how they vote for each other, without knowing where they are. The groups still follow the map,
+       but not perfectly: look for countries that land in a group far from home. Switch to <b>Our clusters</b> to compare with the five we chose ourselves.`
+    : `The five clusters from our project proposal, chosen by geography and history before looking at the votes. Switch back to compare with what the votes say.`;
+  drawDiffs();
+}
+function drawDiffs() {
+  // a hypothesis cluster "matches" the data group that holds most of its members
+  const out = [];
+  for (const [hname, h] of Object.entries(DATA.hyp)) {
+    const members = h.members.filter(m => GROUP[m]);
+    const count = {};
+    for (const m of members) count[GROUP[m].name] = (count[GROUP[m].name] || 0) + 1;
+    const main = Object.entries(count).sort((p, q) => q[1] - p[1])[0];
+    for (const m of members) if (main && GROUP[m].name !== main[0])
+      out.push(`<span class="chip"><b>${nm(m)}</b> · our ${hname} · votes with ${GROUP[m].name}</span>`);
+  }
+  document.getElementById("diffs").innerHTML = out.join("") || `<span class="chip">No differences in this period</span>`;
+}
+
+/* ---------------- 02 distance ---------------- */
+function drawDistance() {
+  const p = P(), inside = { x: [], y: [], t: [], cd: [] }, outside = { x: [], y: [], t: [], cd: [] };
+  for (const [a, b, v, km, ins] of p.scatter) {
+    const o = ins ? inside : outside;
+    o.x.push(km); o.y.push(v); o.t.push(`<b>${nm(a)} ⇄ ${nm(b)}</b><br>${kmf(km)} apart<br>${fmt(v)} extra points on average`); o.cd.push([a, b]);
+  }
+  const tl = (arr, color, dash) => ({ type: "scatter", mode: "lines+markers", x: arr.map(d => d.km), y: arr.map(d => d.mean), hoverinfo: "skip",
+    line: { color, width: 2.5, dash }, marker: { size: 8, color, line: { color: tok("--surface"), width: 2 } } });
+  Plotly.react("distPlot", [
+    { type: "scattergl", mode: "markers", x: outside.x, y: outside.y, text: outside.t, customdata: outside.cd, hovertemplate: "%{text}<extra></extra>",
+      marker: { size: 6, color: tok("--other"), opacity: 0.45 } },
+    { type: "scatter", mode: "markers", x: inside.x, y: inside.y, text: inside.t, customdata: inside.cd, hovertemplate: "%{text}<extra></extra>",
+      marker: { size: 8, color: tok("--s1"), opacity: 0.85, line: { color: tok("--surface"), width: 1.5 } } },
+    tl(p.trend.outside, tok("--ink-2"), "dot"), tl(p.trend.inside, tok("--s1"), "solid"),
+  ], baseLayout({
+    height: 420, margin: { l: 10, r: 14, t: 10, b: 10 }, hovermode: "closest",
+    xaxis: axis({ title: title("Distance between the two countries (km)"), range: [0, 4600], zeroline: false, tickformat: ",d" }),
+    yaxis: axis({ title: title("Extra points per final"), range: [-6, 11], zeroline: true, zerolinecolor: tok("--ink-2"), zerolinewidth: 1 }),
+    annotations: [
+      { x: p.trend.outside.at(-1).km, y: p.trend.outside.at(-1).mean, text: "Different clusters", showarrow: false, xanchor: "right", yshift: -14, font: { size: 12, color: tok("--ink-2") } },
+      { x: p.trend.inside.at(-1).km, y: p.trend.inside.at(-1).mean, text: "Same cluster", showarrow: false, xanchor: "left", xshift: 8, font: { size: 12, color: tok("--s1") } },
+    ],
+  }), CFG);
+
+  const m = p.matched.filter(d => d.inside !== null && d.n_in >= 3);
+  const bar = (key, color, label) => ({ type: "bar", x: m.map(d => d.band), y: m.map(d => d[key]), name: label, marker: { color },
+    text: m.map(d => fmt(d[key])), textposition: "outside", cliponaxis: false, textfont: { family: tok("--font-mono"), color: tok("--ink"), size: 12 },
+    customdata: m.map(d => key === "inside" ? d.n_in : d.n_out), hovertemplate: `${label}, %{x}<br><b>%{y:+.1f}</b> points · %{customdata} pairs<extra></extra>` });
+  Plotly.react("matchPlot", [bar("inside", tok("--s1"), "Same cluster"), bar("outside", tok("--other"), "Different clusters")], baseLayout({
+    height: 420, barmode: "group", bargap: 0.3, bargroupgap: 0.1, margin: { l: 10, r: 10, t: 40, b: 10 },
+    title: { text: "Same distance, compared", x: 0.02, font: { family: tok("--font-display"), size: 15, color: tok("--ink") } },
+    xaxis: axis({ showgrid: false, fixedrange: true }), yaxis: axis({ title: title("Extra points per final"), zeroline: true, zerolinecolor: tok("--ink-2"), fixedrange: true }),
+  }), CFG);
+  const f = p.fit;
+  document.getElementById("distAnswer").innerHTML =
+    `Distance matters: every time the distance doubles, a pair gives each other about <b>${Math.abs(f.per_doubling).toFixed(1)} points</b> less,
+     and distance explains <b>${Math.round(f.r2_dist * 100)} %</b> of the differences. But at the same distance, pairs inside our clusters still give
+     <b>${fmt(f.cluster_bonus)} points</b> more than other pairs. Being neighbours is part of it. Belonging together is a bigger part.`;
+}
+
+/* ---------------- 03 permutation ---------------- */
+function drawPerm() {
+  const pm = P().perm, w = pm.hist.length > 1 ? pm.hist[1][0] - pm.hist[0][0] : 0.1;
+  const top = Math.max(...pm.hist.map(h => h[1]));
+  Plotly.react("permPlot", [
+    { type: "bar", x: pm.hist.map(h => h[0]), y: pm.hist.map(h => h[1]), width: w * 0.9, marker: { color: tok("--other") },
+      hovertemplate: "%{y} random groupings averaged about %{x:+.2f}<extra></extra>" },
+  ], baseLayout({
+    height: 300, margin: { l: 10, r: 20, t: 30, b: 10 },
+    xaxis: axis({ title: title("Average extra points inside the clusters"), range: [Math.min(-0.6, pm.hist[0][0] - w), pm.real + 0.8], zeroline: false, fixedrange: true }),
+    yaxis: axis({ title: title("Random groupings"), fixedrange: true }),
+    shapes: [{ type: "line", x0: pm.real, x1: pm.real, y0: 0, y1: top * 1.05, line: { color: tok("--accent"), width: 3 } }],
+    annotations: [
+      { x: pm.real, y: top * 1.05, text: `Our clusters ${fmt(pm.real)}`, showarrow: false, xanchor: "right", xshift: -6, yanchor: "top",
+        font: { family: tok("--font-body"), size: 13, color: tok("--accent") } },
+      { x: pm.mean, y: top * 1.05, text: "Random clusters", showarrow: false, yanchor: "bottom", font: { size: 12, color: tok("--ink-2") } },
+    ],
+  }), CFG);
+  document.getElementById("permAnswer").innerHTML =
+    `Random clusters average <b>${fmt(pm.mean)}</b> and never got above <b>${fmt(pm.max)}</b>. Ours reach <b>${fmt(pm.real)}</b>.
+     ${pm.p === 0 ? `Not one of ${pm.runs} random groupings came close` : `${Math.round(pm.p * pm.runs)} of ${pm.runs} random groupings did as well`},
+     so the favoritism is real and not something any grouping would show. One caveat stays: we picked the clusters knowing Eurovision's reputation,
+     which is why section 01 also lets the data draw its own groups.`;
+}
+
+/* ---------------- 04 outliers ---------------- */
+function drawOutliers() {
+  const o = P().outliers.slice().reverse(), labels = o.map(d => isPhone() ? `${code(d.a)} → ${code(d.b)} · ${Math.round(d.km / 100) / 10}k km` : `${nm(d.a)} → ${nm(d.b)}  ·  ${kmf(d.km)}`);
+  const lines = { x: [], y: [] };
+  o.forEach((d, i) => { lines.x.push(d.pred, d.fav, null); lines.y.push(labels[i], labels[i], null); });
+  Plotly.react("outPlot", [
+    { type: "scatter", mode: "lines", x: lines.x, y: lines.y, hoverinfo: "skip", line: { color: tok("--line"), width: 3 } },
+    { type: "scatter", mode: "markers", x: o.map(d => d.rev), y: labels, customdata: o.map(d => [d.b, d.a]),
+      text: o.map(d => d.rev === null ? "" : `${nm(d.b)} → ${nm(d.a)}: ${fmt(d.rev)}`), hovertemplate: "%{text}<extra>given back</extra>",
+      marker: { symbol: "diamond", size: 9, color: tok("--other") } },
+    { type: "scatter", mode: "markers", x: o.map(d => d.pred), y: labels, customdata: o.map(d => [d.a, d.b]), hovertemplate: "Predicted from distance: %{x:+.1f}<extra></extra>",
+      marker: { size: 11, color: tok("--surface"), line: { color: tok("--muted"), width: 2 } } },
+    { type: "scatter", mode: "markers", x: o.map(d => d.fav), y: labels, customdata: o.map(d => [d.a, d.b]),
+      text: o.map(d => `<b>${nm(d.a)} → ${nm(d.b)}</b><br>${fmt(d.fav)} extra points per final over ${d.years} finals<br>${Math.round(d.cons * 100)} % of finals above zero`),
+      hovertemplate: "%{text}<extra></extra>", marker: { size: 13, color: tok("--accent"), line: { color: tok("--surface"), width: 2 } } },
+  ], baseLayout({
+    height: 90 + o.length * 32, margin: { l: 10, r: 20, t: 10, b: 10 }, hovermode: "closest",
+    xaxis: axis({ title: title("Extra points per final"), zeroline: true, zerolinecolor: tok("--ink-2"), fixedrange: true }),
+    yaxis: axis({ showgrid: false, fixedrange: true, tickfont: { color: tok("--ink"), size: isPhone() ? 10 : 12 } }),
+  }), CFG);
+  const top = P().outliers.slice(0, 5).map(d => `${nm(d.a)} → ${nm(d.b)}`).join(", ");
+  const oneWay = P().outliers.filter(d => d.rev !== null && d.fav - d.rev > 3).map(d => `${nm(d.a)} → ${nm(d.b)}`);
+  document.getElementById("outAnswer").innerHTML =
+    `The biggest exceptions in this period: ${top}. These are pairs that share a language, or where many people from the receiving country live in
+     the voting country. ${oneWay.length ? `Several are <b>one-way</b> (${oneWay.slice(0, 4).join(", ")}): the points are not returned, which is what you
+     would expect if emigrants vote for their home country, rather than two cultures liking each other.` : ""}`;
+}
+
+/* ---------------- 05 matrix ---------------- */
+function drawHeat() {
+  const order = P().communities.flatMap(g => g.members);
+  const z = [], hov = [], cd = [];
+  for (const a of order) {
+    const zr = [], hr = [], cr = [];
+    for (const b of order) {
+      const o = a !== b && PAIR.get(a + ">" + b);
+      zr.push(o ? o.v : null); cr.push([a, b]);
+      hr.push(o ? `<b>${nm(a)} → ${nm(b)}</b><br>${fmt(o.v)} extra points · ${o.n} finals<br>${Math.round(o.c * 100)} % of finals above zero` : "");
+    }
+    z.push(zr); hov.push(hr); cd.push(cr);
+  }
+  const labels = order.map(code), cell = isPhone() ? 16 : 19, size = order.length * cell;
+  const shapes = []; let pos = 0;
+  for (const g of P().communities) {
+    shapes.push({ type: "rect", x0: pos - 0.5, x1: pos + g.members.length - 0.5, y0: pos - 0.5, y1: pos + g.members.length - 0.5, line: { color: gcol(g.slot), width: 2.5 } });
+    pos += g.members.length;
+  }
+  Plotly.react("heatPlot", [{
+    type: "heatmap", z, x: labels, y: labels, text: hov, customdata: cd, hovertemplate: "%{text}<extra></extra>", hoverongaps: false, xgap: 1, ygap: 1,
+    colorscale: [[0, "#9c2b2a"], [0.25, tok("--neg")], [0.5, tok("--mid")], [0.75, tok("--pos")], [1, tok("--pos-strong")]], zmin: -10, zmax: 10, zmid: 0,
+    colorbar: { title: { text: "Extra pts", side: "right", font: { color: tok("--ink-2") } }, thickness: 10, outlinewidth: 0, tickfont: { color: tok("--ink-2") }, len: 0.6 },
+  }], baseLayout({
+    width: size + 150, height: size + 70, autosize: false, margin: { l: 44, r: 80, t: 44, b: 10 }, shapes,
+    xaxis: axis({ side: "top", showgrid: false, tickfont: { family: tok("--font-mono"), size: 9, color: tok("--ink-2") }, tickangle: -90, fixedrange: true }),
+    yaxis: axis({ autorange: "reversed", showgrid: false, tickfont: { family: tok("--font-mono"), size: 9, color: tok("--ink-2") }, fixedrange: true }),
+  }), { displayModeBar: false });
+}
+
+/* ---------------- 06 public vs jury ---------------- */
+function drawTJ() {
+  const near = { x: [], y: [], t: [], cd: [] }, far = { x: [], y: [], t: [], cd: [] }, mid = { x: [], y: [], t: [], cd: [] };
+  const sums = { near: [0, 0, 0], far: [0, 0, 0] };
+  for (const [a, b, te, ju, n, km] of DATA.tj) {
+    const g = km < 800 ? near : km >= 1500 ? far : mid;
+    g.x.push(te); g.y.push(ju); g.cd.push([a, b]);
+    g.t.push(`<b>${nm(a)} → ${nm(b)}</b> · ${kmf(km)}<br>Public ${fmt(te)} · Jury ${fmt(ju)}<br>${n} finals`);
+    const s = km < 800 ? sums.near : km >= 1500 ? sums.far : null;
+    if (s) { s[0] += te; s[1] += ju; s[2]++; }
+  }
+  const gap = DATA.tj.filter(r => r[5] >= 1500).sort((p, q) => (q[2] - q[3]) - (p[2] - p[3])).slice(0, isPhone() ? 3 : 4).sort((p, q) => q[3] - p[3]);
+  const pts = (g, color, size, op) => ({ type: "scattergl", mode: "markers", x: g.x, y: g.y, text: g.t, customdata: g.cd, hovertemplate: "%{text}<extra></extra>",
+    marker: { size, color, opacity: op } });
+  Plotly.react("tjPlot", [pts(mid, tok("--other"), 5, 0.3), pts(far, tok("--s2"), 6, 0.55), pts(near, tok("--s1"), 7, 0.85)], baseLayout({
+    height: isPhone() ? 420 : 520, margin: { l: 10, r: 14, t: 10, b: 10 }, hovermode: "closest",
+    xaxis: axis({ title: title("Favoritism from the public (televote)"), range: [-6, 13], zeroline: true, zerolinecolor: tok("--ink-2"), dtick: 2 }),
+    yaxis: axis({ title: title("Favoritism from the jury"), range: [-6, 11], zeroline: true, zerolinecolor: tok("--ink-2"), dtick: 2 }),
+    shapes: [{ type: "line", x0: -6, y0: -6, x1: 11, y1: 11, line: { color: tok("--muted"), width: 1, dash: "dot" } }],
+    annotations: [
+      ...gap.map(([a, b, te, ju], gi) => ({ x: te, y: ju, text: `${code(a)} → ${code(b)}`, showarrow: true, arrowhead: 0, arrowwidth: 1, arrowcolor: tok("--ink-2"),
+        ax: 40, ay: [-70, -40, 40, 70, -100, 100][gi] ?? 0, font: { family: tok("--font-mono"), size: 11, color: tok("--ink") },
+        bgcolor: tok("--surface"), borderpad: 2 })),
+      { x: 9.6, y: 10.4, text: "Public and jury agree", showarrow: false, textangle: isPhone() ? 0 : -40, font: { size: 11, color: tok("--muted") } },
+    ],
+  }), CFG);
+  const m = s => [s[0] / s[2], s[1] / s[2]];
+  const [nt, nj] = m(sums.near);
+  document.getElementById("tjAnswer").innerHTML =
+    `Between countries under 800 km apart, the public gives <b>${fmt(nt)}</b> extra points on average and the juries <b>${fmt(nj)}</b>.
+     The labelled pairs are more than 1,500 km apart, yet the public gives them far more than the jury does: ${gap.slice(0, 4).map(([a, b]) => `${nm(a)} → ${nm(b)}`).join(", ")}.
+     Juries are professionals told to judge the song; the public votes with its heart, and that is where both neighbour and diaspora votes come from.`;
+}
+
+/* ---------------- 07 pair ---------------- */
+function fillPairs() {
+  const opts = C.filter(c => c.iso3).sort((p, q) => p.name.localeCompare(q.name)).map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("pairA").innerHTML = opts; document.getElementById("pairB").innerHTML = opts;
+}
+function yearSeries(a, b) {
+  const ia = IDX[a], ib = IDX[b], S = DATA.ser, x = [], y = [];
+  for (let i = 0; i < S.y.length; i++) if (S.f[i] === ia && S.t[i] === ib) { x.push(S.y[i]); y.push(S.ex[i] / 100); }
+  return { x, y };
+}
+function drawPair() {
+  const a = state.a, b = state.b, p = P();
+  document.getElementById("pairA").value = a; document.getElementById("pairB").value = b;
+  document.getElementById("pairTitle").textContent = `${nm(a)} ⇄ ${nm(b)}`;
+  const st = (x, y, col) => {
+    const o = PAIR.get(x + ">" + y);
+    return `<div class="stat" style="border-color:${col}"><div class="k">${code(x)} → ${code(y)}, ${p.y0}–${p.y1}</div>
+      <div class="v">${o ? fmt(o.v) : "—"}</div><div class="d">${o ? `${o.n} finals · ${Math.round(o.c * 100)} % above zero` : "Too few shared finals in this period"}</div></div>`;
+  };
+  const ca = byId(a), cb = byId(b);
+  const dist = ca.lat != null && cb.lat != null ? (() => {
+    const r = Math.PI / 180, h = Math.sin((cb.lat - ca.lat) * r / 2) ** 2 + Math.cos(ca.lat * r) * Math.cos(cb.lat * r) * Math.sin((cb.lon - ca.lon) * r / 2) ** 2;
+    return 6371 * 2 * Math.asin(Math.sqrt(h)); })() : null;
+  const grp = GROUP[a] && GROUP[a] === GROUP[b] ? `Same data group` : `Different data groups`;
+  document.getElementById("pairStats").innerHTML = st(a, b, tok("--s1")) + st(b, a, tok("--s2")) +
+    `<div class="stat"><div class="k">Distance</div><div class="v">${dist ? kmf(dist) : "—"}</div><div class="d">${grp}</div></div>`;
+  const s1 = yearSeries(a, b), s2 = yearSeries(b, a);
+  const tr = (s, col, label) => ({ type: "scatter", mode: "lines+markers", x: s.x, y: s.y, name: label, line: { color: col, width: 2 },
+    marker: { size: 7, color: col, line: { color: tok("--surface"), width: 1.5 } }, hovertemplate: `${label}<br>%{x}: <b>%{y:+.1f}</b><extra></extra>` });
+  Plotly.react("pairPlot", [tr(s1, tok("--s1"), `${nm(a)} → ${nm(b)}`), tr(s2, tok("--s2"), `${nm(b)} → ${nm(a)}`)], baseLayout({
+    height: 360, showlegend: true, margin: { l: 10, r: 10, t: 40, b: 10 }, hovermode: "x unified",
+    legend: { orientation: "h", x: 0, y: 1.14, font: { color: tok("--ink") } },
+    xaxis: axis({ range: [1956, 2024] }), yaxis: axis({ title: title("Extra points that final"), zeroline: true, zerolinecolor: tok("--ink-2") }),
+    shapes: [{ type: "rect", xref: "x", yref: "paper", x0: p.y0 - 0.5, x1: p.y1 + 0.5, y0: 0, y1: 1, fillcolor: tok("--accent-soft"), opacity: 0.5, line: { width: 0 }, layer: "below" }],
+  }), CFG);
+}
+function pick(a, b) {
+  state.a = a; state.b = b; drawPair();
+  document.getElementById("pair").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+/* ---------------- wiring ---------------- */
+function drawPeriod() { prepare(); drawFindings(); drawMap(); drawDistance(); drawPerm(); drawOutliers(); drawHeat(); drawPair(); }
+function drawAll() { drawPeriod(); drawTJ(); }
+function seg(id, key, after) {
+  document.getElementById(id).addEventListener("click", e => {
+    const btn = e.target.closest("button"); if (!btn) return;
+    for (const x of e.currentTarget.querySelectorAll("button")) x.setAttribute("aria-pressed", x === btn);
+    state[key] = btn.dataset.v; after();
+  });
+}
+seg("period", "period", drawPeriod);
+seg("mapMode", "mapMode", drawMap);
+fillPairs();
+document.getElementById("pairA").onchange = e => { state.a = e.target.value; drawPair(); };
+document.getElementById("pairB").onchange = e => { state.b = e.target.value; drawPair(); };
+drawAll();
+for (const id of ["distPlot", "outPlot", "heatPlot", "tjPlot"]) {
+  document.getElementById(id).on("plotly_click", ev => {
+    const cd = ev.points?.[0]?.customdata;
+    if (Array.isArray(cd) && cd.length === 2 && cd[0] !== cd[1]) pick(cd[0], cd[1]);
+  });
+}
+const rethemed = () => drawAll();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rethemed);
+new MutationObserver(rethemed).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(drawAll, 250); });
+</script>
