@@ -126,12 +126,14 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 40px; }
 
 <div class="bar">
   <div class="wrap">
-    <span class="lab">Period</span>
-    <div class="seg" id="period" role="group" aria-label="Period">
-      <button type="button" data-v="1993-2023" aria-pressed="true">1993–2023</button>
-      <button type="button" data-v="1997-2008" aria-pressed="false">1997–2008 · televote era</button>
-      <button type="button" data-v="2009-2023" aria-pressed="false">2009–2023 · jury + public</button>
-    </div>
+    <span class="lab">Period</span>   
+   <div class="seg" id="period" role="group" aria-label="Period">
+     <button type="button" data-v="1957-2023" aria-pressed="true">1957–2023</button>
+     <button type="button" data-v="1957-1974" aria-pressed="false">1957–1974</button>
+     <button type="button" data-v="1975-2003" aria-pressed="false">1975–2003</button>
+     <button type="button" data-v="2004-2015" aria-pressed="false">2004–2015</button>
+     <button type="button" data-v="2016-2023" aria-pressed="false">2016–2023</button>
+   </div>
     <span class="note" id="periodNote"></span>
   </div>
 </div>
@@ -146,6 +148,16 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 40px; }
         <button type="button" data-v="hyp" aria-pressed="false">Our clusters</button>
       </div>
     </div>
+    <div class="ctls" style="margin-bottom:16px">
+  <div class="ctl">
+    <span>Vote type</span>
+    <div class="seg" id="mapVote" role="group" aria-label="Vote type">
+      <button type="button" data-v="combined" aria-pressed="true">Combined</button>
+      <button type="button" data-v="jury" aria-pressed="false">Jury</button>
+      <button type="button" data-v="public" aria-pressed="false">Public</button>
+       </div>
+     </div>
+   </div>
     <p class="text" id="mapText"></p>
     <div class="panel">
       <div id="mapPlot"></div>
