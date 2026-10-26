@@ -31,8 +31,11 @@ def map_vote_payload(t, y0, y1, min_years, vote_type):
         "public": "tele",
     }[vote_type]
 
+    # Separate jury and public scores are available from 2016 onward.
+    # For a period spanning earlier years, use only its overlapping 2016+ years.
+    effective_start = max(y0, 2016) if vote_type != "combined" else y0
     s = t[
-        t.year.between(y0, y1) &
+        t.year.between(effective_start, y1) &
         (t.stage == "F")
     ].dropna(subset=[column])
 
@@ -49,7 +52,7 @@ def map_vote_payload(t, y0, y1, min_years, vote_type):
     ps = ps[ps.years >= min_years].reset_index(drop=True)
 
     if ps.empty:
-        return {"pairs": [], "communities": []}
+        return {"pairs": [], "communities": [], "y0": effective_start, "y1": y1}
 
     comms, _ = communities(ps)
 
@@ -66,7 +69,9 @@ def map_vote_payload(t, y0, y1, min_years, vote_type):
 
     return {
         "pairs": pairs,
-        "communities": comms
+        "communities": comms,
+        "y0": effective_start,
+        "y1": y1,
     }
 
 def payload() -> dict:
@@ -88,7 +93,7 @@ def payload() -> dict:
                 vote: map_vote_payload(t, y0, y1, mn, vote)
                 for vote in (
                     ["combined", "jury", "public"]
-                    if y0 >= 2016 else ["combined"]
+                    if y1 >= 2016 else ["combined"]
                 )
             }
             for k, (y0, y1, mn) in PERIODS.items()

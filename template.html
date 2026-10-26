@@ -158,6 +158,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 40px; }
        </div>
      </div>
    </div>
+   <p class="note" id="mapVoteNote" role="status" aria-live="polite"></p>
     <p class="text" id="mapText"></p>
     <div class="panel">
       <div id="mapPlot"></div>
@@ -360,7 +361,7 @@ function drawFindings() {
 /* ---------------- 01 map ---------------- */
 function favouritesOf(id, k = 3) {
   const list = [];
-  for (const [key, o] of PAIR) { const [a, b] = key.split(">"); if (a === id) list.push([b, o.v]); }
+  for (const [key, o] of MAPPAIR) { const [a, b] = key.split(">"); if (a === id) list.push([b, o.v]); }
   return list.sort((p, q) => q[1] - p[1]).slice(0, k).map(([b, v]) => `${nm(b)} ${fmt(v)}`).join("<br>") || "Too few shared finals";
 }
 function mapGroups() {
@@ -661,7 +662,7 @@ function drawPeriod() {
 
   prepare();
   drawFindings();
-  drawMap();
+  drawMapVote();
   drawDistance();
   drawPerm();
   drawOutliers();
@@ -671,6 +672,15 @@ function drawPeriod() {
 
 function drawMapVote() {
   prepare();
+  // Update the button accessibility state even when changed programmatically.
+  document.querySelectorAll("#mapVote button").forEach(btn => {
+    btn.setAttribute("aria-pressed", btn.dataset.v === state.mapVote);
+  });
+  const v = M();
+  const label = state.mapVote === "combined" ? "Combined" : state.mapVote === "jury" ? "Jury" : "Public";
+  document.getElementById("mapVoteNote").textContent =
+    `${label} votes · finals ${v.y0}–${v.y1}` +
+    (state.mapVote !== "combined" && v.y0 > P().y0 ? " (separate vote data only available from 2016)" : "");
   drawMap();
 }
 function drawAll() { drawPeriod(); drawTJ(); }
