@@ -288,8 +288,19 @@ const fmt = v => { const r = Math.round(v * 10) / 10; return (r > 0 ? "+" : r < 
 const kmf = v => Math.round(v).toLocaleString("en-GB") + " km";
 const isPhone = () => matchMedia("(max-width: 640px)").matches;
 
-const state = { period: "1993-2023", mapMode: "data", a: "de", b: "tr" };
+
+const state = {
+  period: "1957-2023",
+  mapMode: "data",
+  mapVote: "combined",
+  a: "de",
+  b: "tr"
+};
+
 const P = () => DATA.periods[state.period];
+
+const M = () => DATA.mapVotes[state.period][state.mapVote];
+
 const CFG = { displayModeBar: false, responsive: true };
 
 function baseLayout(extra = {}) {
@@ -306,11 +317,33 @@ const title = text => ({ text, font: { color: tok("--ink-2"), size: 12 } });
 
 /* lookups for the active period */
 let PAIR = new Map(), GROUP = {};
+
+let MAPPAIR = new Map(), MAPGROUP = {};
+
 function prepare() {
-  PAIR = new Map(P().pairs.map(([a, b, v, n, c]) => [a + ">" + b, { v, n, c }]));
+  PAIR = new Map(
+    P().pairs.map(([a, b, v, n, c]) => [
+      a + ">" + b, { v, n, c }
+    ])
+  );
+
   GROUP = {};
-  for (const g of P().communities) for (const m of g.members) GROUP[m] = g;
+  for (const g of P().communities) {
+    for (const m of g.members) GROUP[m] = g;
+  }
+
+  MAPPAIR = new Map(
+    M().pairs.map(([a, b, v, n, c]) => [
+      a + ">" + b, { v, n, c }
+    ])
+  );
+
+  MAPGROUP = {};
+  for (const g of M().communities) {
+    for (const m of g.members) MAPGROUP[m] = g;
+  }
 }
+
 
 /* ---------------- headline findings ---------------- */
 function drawFindings() {
@@ -331,8 +364,8 @@ function favouritesOf(id, k = 3) {
   return list.sort((p, q) => q[1] - p[1]).slice(0, k).map(([b, v]) => `${nm(b)} ${fmt(v)}`).join("<br>") || "Too few shared finals";
 }
 function mapGroups() {
-  if (state.mapMode === "data") return P().communities.map(g => ({ name: g.name, slot: g.slot, members: g.members }));
-  return Object.entries(DATA.hyp).map(([name, g]) => ({ name, slot: g.slot, members: g.members.filter(m => m in IDX) }));
+   if (state.mapMode === "data") return M().communities.map(g => ({ name: g.name, slot: g.slot, members: g.members }));
+   return Object.entries(DATA.hyp).map(([name, g]) => ({ name, slot: g.slot, members: g.members.filter(m => m in IDX) }));
 }
 function drawMap() {
   const groups = mapGroups(), traces = [];
@@ -342,8 +375,8 @@ function drawMap() {
   for (const g of all) {
     const ids = g.members.filter(m => byId(m).iso3);
     const color = g.slot === null ? tok("--land") : gcol(g.slot);
-    const other = state.mapMode === "data" ? (c => byId(c).hyp ? `Our cluster: ${byId(c).hyp}` : "Not in our clusters")
-                                           : (c => GROUP[c] ? `Data group: ${GROUP[c].name}` : "No data group");
+    const other = state.mapMode === "data" ? (c => byId(c).hyp ? `Our cluster: ${byId(c).hyp}` : "Not in our clusters")                                
+                                                      : (c => MAPGROUP[c] ? `Data group: ${MAPGROUP[c].name}` : "No data group");
     traces.push({
       type: "choropleth", locationmode: "ISO-3", locations: ids.map(c => byId(c).iso3), z: ids.map(() => 1),
       text: ids.map(c => `<b>${nm(c)}</b> · ${g.name}<br>${other(c)}<br><br><span style="font-size:11px">Gives most extra points to</span><br>${favouritesOf(c)}`),
@@ -378,18 +411,35 @@ function drawMap() {
     : `The five clusters from our project proposal, chosen by geography and history before looking at the votes. Switch back to compare with what the votes say.`;
   drawDiffs();
 }
+
 function drawDiffs() {
-  // a hypothesis cluster "matches" the data group that holds most of its members
+  // Find the data group that matches each hypothesis cluster
   const out = [];
+
   for (const [hname, h] of Object.entries(DATA.hyp)) {
-    const members = h.members.filter(m => GROUP[m]);
+    const members = h.members.filter(m => MAPGROUP[m]);
     const count = {};
-    for (const m of members) count[GROUP[m].name] = (count[GROUP[m].name] || 0) + 1;
-    const main = Object.entries(count).sort((p, q) => q[1] - p[1])[0];
-    for (const m of members) if (main && GROUP[m].name !== main[0])
-      out.push(`<span class="chip"><b>${nm(m)}</b> · our ${hname} · votes with ${GROUP[m].name}</span>`);
+
+    for (const m of members) {
+      count[MAPGROUP[m].name] =
+        (count[MAPGROUP[m].name] || 0) + 1;
+    }
+
+    const main = Object.entries(count)
+      .sort((p, q) => q[1] - p[1])[0];
+
+    for (const m of members) {
+      if (main && MAPGROUP[m].name !== main[0]) {
+        out.push(
+          `<span class="chip"><b>${nm(m)}</b> · our ${hname} · votes with ${MAPGROUP[m].name}</span>`
+        );
+      }
+    }
   }
-  document.getElementById("diffs").innerHTML = out.join("") || `<span class="chip">No differences in this period</span>`;
+
+  document.getElementById("diffs").innerHTML =
+    out.join("") ||
+    `<span class="chip">No differences in this period</span>`;
 }
 
 /* ---------------- 02 distance ---------------- */
@@ -592,7 +642,37 @@ function pick(a, b) {
 }
 
 /* ---------------- wiring ---------------- */
-function drawPeriod() { prepare(); drawFindings(); drawMap(); drawDistance(); drawPerm(); drawOutliers(); drawHeat(); drawPair(); }
+
+function drawPeriod() {
+  const available = DATA.mapVotes[state.period];
+
+  if (!available[state.mapVote]) {
+    state.mapVote = "combined";
+  }
+
+  document.querySelectorAll("#mapVote button").forEach(btn => {
+    const enabled = !!available[btn.dataset.v];
+    btn.disabled = !enabled;
+    btn.setAttribute(
+      "aria-pressed",
+      btn.dataset.v === state.mapVote
+    );
+  });
+
+  prepare();
+  drawFindings();
+  drawMap();
+  drawDistance();
+  drawPerm();
+  drawOutliers();
+  drawHeat();
+  drawPair();
+}
+
+function drawMapVote() {
+  prepare();
+  drawMap();
+}
 function drawAll() { drawPeriod(); drawTJ(); }
 function seg(id, key, after) {
   document.getElementById(id).addEventListener("click", e => {
@@ -603,6 +683,7 @@ function seg(id, key, after) {
 }
 seg("period", "period", drawPeriod);
 seg("mapMode", "mapMode", drawMap);
+seg("mapVote", "mapVote", drawMapVote);
 fillPairs();
 document.getElementById("pairA").onchange = e => { state.a = e.target.value; drawPair(); };
 document.getElementById("pairB").onchange = e => { state.b = e.target.value; drawPair(); };
