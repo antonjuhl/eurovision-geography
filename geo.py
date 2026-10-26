@@ -19,10 +19,12 @@ from analysis import CLUSTER_SCHEMES, COORDS, NAMES, build_table, pair_summary
 
 HYPOTHESIS = CLUSTER_SCHEMES["original"]
 
-PERIODS = {  # key: (first year, last year, min shared years)
-    "1993-2023": (1993, 2023, 5),
-    "1997-2008": (1997, 2008, 4),
-    "2009-2023": (2009, 2023, 4),
+PERIODS = {
+    "1957-2023": (1957, 2023, 5),
+    "1957-1974": (1957, 1974, 3),
+    "1975-2003": (1975, 2003, 4),
+    "2004-2015": (2004, 2015, 4),
+    "2016-2023": (2016, 2023, 3),
 }
 
 # Data communities get their colour from the anchor country they contain,
